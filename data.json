@@ -154,6 +154,25 @@
    "aliases": []
   }
  ],
- "games": [],
+ "games": [
+  {
+   "id": "2026-11-02_g1",
+   "date": "2026-11-02",
+   "gara": 1,
+   "season": "s20",
+   "ranking": [
+    "Marghe",
+    "Nicola",
+    "Tia",
+    "Marco",
+    "Balle",
+    "Dechi",
+    "Fede",
+    "Jack",
+    "Hugo"
+   ],
+   "savedAt": "2026-11-02T12:45:02.576Z"
+  }
+ ],
  "seasons": []
 }
