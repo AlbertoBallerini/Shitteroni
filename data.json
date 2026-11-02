@@ -145,6 +145,13 @@
    "order": 15,
    "active": true,
    "aliases": []
+  },
+  {
+   "id": "hugo",
+   "name": "Hugo",
+   "order": 16,
+   "active": true,
+   "aliases": []
   }
  ],
  "games": [],
