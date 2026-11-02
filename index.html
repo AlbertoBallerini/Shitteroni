@@ -1,0 +1,1238 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="theme-color" content="#000000">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SegFolt Toornament</title>
+<meta name="description" content="Classifiche, ordine al tavolo e storico del SegFolt Toornament di ping pong">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800;900&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* Layout: ping-pong-table header band, tabbed single column of panels, cards for each tool. */
+:root{
+  /* OLED: pure black canvas, near-black surfaces, light text, colour only on small elements */
+  --bg:#000000;
+  --surface:#000000;
+  --raised:#0b0d10;
+  --ink:#e6e9ee;
+  --muted:#8b95a3;
+  --line:#1e232b;
+  --table:#2f6fbf;
+  --table-ink:#e6e9ee;
+  --ball:#f28a34;
+  --ball-soft:#2a1606;
+  --good:#45c27c;
+  --bad:#ef6464;
+  --chip:#12161c;
+  --font-display:'Big Shoulders Display', 'Arial Narrow', Impact, sans-serif;
+  --font-body:'Figtree', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  color-scheme: dark;
+}
+html{background:#000}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:15px;line-height:1.45}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--ball);outline-offset:2px}
+a{color:var(--ball)}
+code{font-size:.92em}
+
+header.band{background:#000;color:var(--table-ink);position:relative;overflow:hidden;border-bottom:1px solid var(--line)}
+header.band::before{content:"";position:absolute;inset:0;background:
+  linear-gradient(90deg,transparent calc(50% - 1px),var(--table) calc(50% - 1px),var(--table) calc(50% + 1px),transparent calc(50% + 1px));pointer-events:none}
+header.band::after{content:"";position:absolute;inset:10px;border:2px solid var(--table);border-radius:4px;pointer-events:none}
+.band-inner{position:relative;max-width:980px;margin:0 auto;padding:26px 28px 18px;display:flex;flex-wrap:wrap;gap:10px 18px;align-items:flex-end;justify-content:space-between}
+.band h1{font-family:var(--font-display);font-weight:900;font-size:clamp(30px,6vw,46px);line-height:.95;margin:0;letter-spacing:.5px;text-transform:uppercase;text-wrap:balance}
+.band h1 .ball{display:inline-block;width:.55em;height:.55em;border-radius:50%;background:var(--ball);vertical-align:.08em;margin-left:.15em;box-shadow:inset -3px -3px 0 rgba(0,0,0,.15)}
+.season{display:flex;gap:8px;flex-wrap:wrap;align-items:center;font-weight:600;font-size:13px}
+.season span{background:#000;border:1px solid var(--line);color:var(--muted);padding:4px 10px;border-radius:999px}
+
+nav.tabs{position:sticky;top:0;z-index:5;background:#000;border-bottom:1px solid var(--line)}
+nav.tabs .wrap{max-width:980px;margin:0 auto;padding:0 16px;display:flex;gap:2px;overflow-x:auto}
+nav.tabs a{flex:0 0 auto;padding:12px 14px;text-decoration:none;color:var(--muted);font-weight:600;border-bottom:3px solid transparent}
+nav.tabs a[aria-current="page"]{color:var(--ink);border-bottom-color:var(--ball)}
+
+main{max-width:980px;margin:0 auto;padding:20px 16px 60px;display:grid;gap:18px}
+.notice{border:1px solid var(--line);background:var(--surface);border-left:4px solid var(--ball);padding:10px 14px;border-radius:8px;font-size:14px}
+.notice.err{border-left-color:var(--bad)}
+section.panel{display:none;gap:18px}
+section.panel.on{display:grid}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px}
+.card h2{font-family:var(--font-display);font-weight:800;font-size:24px;text-transform:uppercase;letter-spacing:.4px;margin:0 0 4px;line-height:1.05}
+.card h3{font-size:14px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);margin:16px 0 8px}
+.sub{color:var(--muted);margin:0 0 14px;font-size:14px;max-width:65ch}
+.grid2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px}
+@media (max-width:760px){.grid2{grid-template-columns:minmax(0,1fr)}}
+
+label{font-weight:600;font-size:13px;display:block;margin-bottom:4px}
+.row{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end}
+.field{display:grid;gap:4px}
+input[type=text],input[type=password],input[type=date],select,textarea{background:var(--raised);border:1px solid var(--line);border-radius:8px;padding:9px 10px;width:100%}
+textarea{min-height:190px;resize:vertical;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:14px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg label{margin:0;padding:8px 12px;cursor:pointer;font-weight:600;font-size:13px;background:var(--raised)}
+.seg input{position:absolute;opacity:0;pointer-events:none}
+.seg input:checked + span{color:var(--ball)}
+.seg label:has(input:checked){background:var(--ball-soft)}
+.seg input:focus-visible + span{outline:2px solid var(--ball);outline-offset:2px}
+
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:9px 14px;font-weight:600;cursor:pointer}
+.btn:hover{border-color:var(--muted)}
+.btn.primary{background:transparent;border-color:var(--ball);color:var(--ball)}
+.btn.primary:not(:disabled):hover{background:var(--ball-soft)}
+.btn.primary:disabled{opacity:.45;cursor:not-allowed}
+.btn.small{padding:5px 10px;font-size:13px}
+.btn.danger{color:var(--bad)}
+.link{background:none;border:0;padding:0;color:var(--ball);font-weight:600;cursor:pointer;text-decoration:underline}
+
+table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
+th,td{padding:7px 8px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
+th{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);font-weight:700}
+td.num,th.num{text-align:right}
+.scroll{overflow-x:auto}
+.pos{font-family:var(--font-display);font-weight:800;font-size:18px;width:38px}
+.pts{font-weight:700}
+tr.top1 .pos{color:var(--ball)}
+.zero td{color:var(--muted)}
+
+.pill{display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px;font-weight:700;background:var(--chip)}
+.pill.ok{background:color-mix(in srgb,var(--good) 18%,transparent);color:var(--good)}
+.pill.bad{background:color-mix(in srgb,var(--bad) 16%,transparent);color:var(--bad)}
+.pill.seg{background:var(--ball-soft);color:var(--ball)}
+.trend.up{color:var(--good);font-weight:700}
+.trend.down{color:var(--bad);font-weight:700}
+.trend.eq{color:var(--muted)}
+
+.preview li{display:grid;grid-template-columns:34px minmax(0,1fr) auto;gap:8px;align-items:center;padding:7px 0;border-bottom:1px solid var(--line)}
+.preview ol{list-style:none;margin:0;padding:0}
+.preview .raw{color:var(--muted);font-size:12px}
+.fix{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:4px}
+.fix select{width:auto;padding:4px 8px;font-size:13px}
+.msg{font-size:14px;margin-top:10px;min-height:1.2em}
+.msg.ok{color:var(--good)} .msg.err{color:var(--bad)}
+
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:1px solid var(--line);background:#000;padding:7px 12px;border-radius:999px;font-weight:600;cursor:pointer;user-select:none}
+.chip[aria-pressed="true"]{background:#000;border-color:var(--table);color:var(--ink)}
+.chip[aria-pressed="false"]{text-decoration:line-through;color:var(--muted)}
+
+.seats{list-style:none;margin:0;padding:0;display:grid;gap:8px;counter-reset:s}
+.seats li{display:grid;grid-template-columns:44px minmax(0,1fr) auto;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--raised)}
+.seats .n{font-family:var(--font-display);font-size:26px;font-weight:900;color:#7fb0ec;line-height:1}
+.seats .who{font-weight:700;font-size:16px}
+.seats .meta{color:var(--muted);font-size:13px}
+
+#schema{width:100%;max-width:760px;margin:0 auto;height:auto;display:block}
+#schema .seatno{font-family:var(--font-display);font-weight:800;font-size:15px;fill:#7fb0ec}
+#schema .nm{font-family:var(--font-body);font-weight:700;font-size:13px;fill:var(--ink)}
+.chart-wrap{position:relative}
+#hlChips .chip[aria-pressed="false"]{text-decoration:none}
+#lineChart{width:100%;height:auto;display:block;touch-action:pan-y}
+#lineChart .grid{stroke:#161a20;stroke-width:1}
+#lineChart .axis{fill:var(--muted);font-size:11px;font-family:var(--font-body)}
+#lineChart .lbl{font-size:12px;font-weight:700;font-family:var(--font-body);fill:var(--ink)}
+.tip{position:absolute;pointer-events:none;background:#0b0d10;border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:13px;min-width:150px;z-index:2;box-shadow:0 4px 16px rgba(0,0,0,.6)}
+.tip .t-head{font-weight:700;margin-bottom:4px}
+.tip .t-row{display:grid;grid-template-columns:10px minmax(0,1fr) auto;gap:6px;align-items:center;font-variant-numeric:tabular-nums}
+.tip .sw{width:10px;height:3px;border-radius:2px}
+.tip .t-row span:last-child{color:var(--muted)}
+.chip .dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:-1px}
+table.heat td{text-align:center;padding:4px;min-width:38px;border-bottom:1px solid #000}
+table.heat td.nm{text-align:left;font-weight:600;padding-right:10px}
+table.heat td.v{border-radius:4px;border:2px solid #000;font-size:13px}
+table.heat td.v.mrseg{outline:1px solid var(--ball);outline-offset:-3px}
+.tiers{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px}
+.tier{border:1px solid var(--line);border-radius:10px;padding:12px}
+.tier h4{margin:0 0 8px;font-size:13px;text-transform:uppercase;letter-spacing:.6px}
+.tier dl{display:grid;grid-template-columns:auto minmax(0,1fr);gap:6px 12px;margin:0}
+.tier dt{font-weight:800;font-family:var(--font-display);font-size:17px}
+.tier dd{margin:0}
+
+.day{border:1px solid var(--line);border-radius:10px;padding:12px;display:grid;gap:10px}
+.day-head{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:baseline}
+.day-head strong{font-size:16px}
+.games{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px}
+.game{background:var(--raised);border-radius:8px;padding:10px}
+.game ol{margin:6px 0 0;padding-left:22px}
+.game li{display:flex;justify-content:space-between;gap:8px}
+.game-head{display:flex;justify-content:space-between;align-items:center;gap:6px;font-weight:700}
+.empty{color:var(--muted);font-style:italic}
+.weeknav{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+@media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<header class="band">
+  <div class="band-inner">
+    <h1>SegFolt Toornament<span class="ball" aria-hidden="true"></span></h1>
+    <div class="season" id="seasonInfo"><span>Caricamento…</span></div>
+  </div>
+</header>
+<nav class="tabs" aria-label="Sezioni">
+  <div class="wrap">
+    <a href="#gara" data-tab="gara">Inserisci gara</a>
+    <a href="#classifica" data-tab="classifica">Classifiche</a>
+    <a href="#tavolo" data-tab="tavolo">Ordine</a>
+    <a href="#giocatori" data-tab="giocatori">Giocatori</a>
+    <a href="#storico" data-tab="storico">Storico gare</a>
+    <a href="#andamento" data-tab="andamento">Andamento</a>
+    <a href="#season" data-tab="season">Season</a>
+    <a href="#accesso" data-tab="accesso">Accesso</a>
+  </div>
+</nav>
+
+<main>
+  <div id="status" class="notice" hidden></div>
+
+  <!-- INSERISCI GARA -->
+  <section class="panel" id="p-gara">
+    <div class="grid2">
+      <div class="card">
+        <h2>Incolla la classifica</h2>
+        <p class="sub">Copia l'elenco dalla chat WhatsApp e incollalo qui, un nome per riga. Numeri, emoji e intestazioni dei messaggi vengono ignorati.</p>
+        <div class="row" style="margin-bottom:12px">
+          <div class="field" style="flex:1 1 150px"><label for="gDate">Giorno</label><input type="date" id="gDate"></div>
+          <div class="field" style="flex:0 1 110px"><label for="gNum">Gara</label>
+            <select id="gNum"><option value="1">Gara 1</option><option value="2">Gara 2</option><option value="3">Gara 3</option></select></div>
+        </div>
+        <div style="margin-bottom:12px">
+          <label id="dirLbl">Ordine dell'elenco</label>
+          <div class="seg" role="radiogroup" aria-labelledby="dirLbl">
+            <label><input type="radio" name="dir" value="last" id="dirLast" checked><span>Dall'ultimo al primo</span></label>
+            <label><input type="radio" name="dir" value="first" id="dirFirst"><span>Dal primo all'ultimo</span></label>
+          </div>
+        </div>
+        <label for="paste">Elenco nomi</label>
+        <textarea id="paste" placeholder="fede&#10;davide&#10;tia&#10;marco&#10;dechi&#10;nicola&#10;balle&#10;jack&#10;Marghe"></textarea>
+      </div>
+      <div class="card preview">
+        <h2>Anteprima</h2>
+        <p class="sub" id="prevSub">Il vincitore in cima, con i punti che prenderà.</p>
+        <div id="prevList"><p class="empty">Incolla un elenco per vedere la classifica della gara.</p></div>
+        <div class="row" style="margin-top:14px">
+          <button class="btn primary" id="saveGame" disabled>Salva gara</button>
+          <button class="btn" id="clearPaste">Svuota</button>
+        </div>
+        <div class="msg" id="saveMsg" role="status"></div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Oggi</h2>
+      <div id="todayBox"></div>
+    </div>
+  </section>
+
+  <!-- CLASSIFICHE -->
+  <section class="panel" id="p-classifica">
+    <div class="grid2">
+      <div class="card">
+        <h2>Classifica generale</h2>
+        <p class="sub">Punti della season. A pari punti è davanti chi ha più SEG. La freccia indica le posizioni guadagnate o perse rispetto alla fine della settimana scorsa.</p>
+        <div class="scroll" id="genTable"></div>
+      </div>
+      <div class="card">
+        <h2>Classifica settimanale</h2>
+        <p class="sub">A pari punti è davanti chi sta più in alto in generale.</p>
+        <div class="weeknav" style="margin-bottom:10px">
+          <button class="btn small" id="wPrev" aria-label="Settimana precedente">‹</button>
+          <strong id="wLabel"></strong>
+          <button class="btn small" id="wNext" aria-label="Settimana successiva">›</button>
+        </div>
+        <div class="scroll" id="weekTable"></div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Somme giornaliere</h2>
+      <p class="sub">Punti per giorno della settimana selezionata, con il Mr SEG di ogni giornata.</p>
+      <div class="scroll" id="dailyTable"></div>
+    </div>
+  </section>
+
+  <!-- TAVOLO -->
+  <section class="panel" id="p-tavolo">
+    <div class="grid2">
+      <div class="card">
+        <h2>Ordine</h2>
+        <p class="sub" id="seatBasis"></p>
+        <div id="seatList"></div>
+      </div>
+      <div class="card">
+        <h2>Chi manca?</h2>
+        <p class="sub">L'ordine include tutti. Tocca un nome per toglierlo, toccalo di nuovo per rimetterlo.</p>
+        <div class="row" style="margin-bottom:12px">
+          <button class="btn small" id="selAll">Rimetti tutti</button>
+        </div>
+        <div class="chips" id="presentChips"></div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Disposizione sul tavolo</h2>
+      <svg id="schema" role="img" aria-label="Disposizione dei giocatori intorno al tavolo"></svg>
+      <p class="sub" id="schemaNote" style="margin-top:8px"></p>
+    </div>
+    <div class="card">
+      <h2>Penalità &lt; 10</h2>
+      <p class="sub">Dalla classifica generale.</p>
+      <div class="tiers" id="tiers"></div>
+    </div>
+  </section>
+
+  <!-- GIOCATORI -->
+  <section class="panel" id="p-giocatori">
+    <div class="card">
+      <h2>Aggiungi giocatore</h2>
+      <form id="addForm" class="row" autocomplete="off">
+        <div class="field" style="flex:1 1 220px"><label for="newName">Nome</label><input type="text" id="newName" maxlength="30" placeholder="Es. Adam"></div>
+        <button class="btn primary" type="submit">Aggiungi</button>
+      </form>
+      <div class="msg" id="addMsg" role="status"></div>
+    </div>
+    <div class="card">
+      <h2>Rosa</h2>
+      <p class="sub">I nomi alternativi vengono ricordati quando abbini un nome scritto in modo diverso nella chat.</p>
+      <div class="scroll" id="playersTable"></div>
+    </div>
+  </section>
+
+  <!-- STORICO -->
+  <section class="panel" id="p-andamento">
+    <div class="card">
+      <h2>Andamento della season</h2>
+      <p class="sub" id="trendSub">Punti cumulati giorno per giorno. Scegli fino a 4 giocatori da mettere in evidenza; gli altri restano in grigio.</p>
+      <div class="row" style="margin-bottom:12px;align-items:center">
+        <div class="seg" role="radiogroup" aria-label="Cosa mostrare">
+          <label><input type="radio" name="metric" value="pts" checked><span>Punti generale</span></label>
+          <label><input type="radio" name="metric" value="tot"><span>Punti + SEG</span></label>
+        </div>
+        <span class="sub" style="margin:0" id="hlHint"></span>
+      </div>
+      <div class="chips" id="hlChips" style="margin-bottom:14px"></div>
+      <div class="chart-wrap" id="lineWrap">
+        <svg id="lineChart" role="img" aria-label="Andamento dei punti nella season"></svg>
+        <div class="tip" id="lineTip" hidden></div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Punti per giornata</h2>
+      <p class="sub">Quanto ha fatto ognuno in ogni giorno di gioco. Più è intenso il blu, più punti. SEG indica il Mr SEG del giorno.</p>
+      <div class="scroll" id="heat"></div>
+    </div>
+  </section>
+
+  <section class="panel" id="p-season">
+    <div class="grid2">
+      <div class="card">
+        <h2>Corsa alla vittoria</h2>
+        <p class="sub">Vince la season chi ha più punti in generale sommando il SEG counter.</p>
+        <div class="scroll" id="winTable"></div>
+      </div>
+      <div class="card">
+        <h2>Chiudi season</h2>
+        <p class="sub" id="closeSub"></p>
+        <form id="closeForm" autocomplete="off" style="display:grid;gap:12px">
+          <div class="row">
+            <div class="field" style="flex:1 1 160px"><label for="newSeasonName">Nuova season</label><input type="text" id="newSeasonName" maxlength="40"></div>
+            <div class="field" style="flex:1 1 150px"><label for="newSeasonEnd">Fine nuova season</label><input type="date" id="newSeasonEnd"></div>
+          </div>
+          <div class="row"><button class="btn primary" type="submit" id="closeBtn">Chiudi season e riparti da zero</button></div>
+        </form>
+        <div class="msg" id="closeMsg" role="status"></div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Albo d'oro</h2>
+      <div id="albo"></div>
+    </div>
+  </section>
+
+  <section class="panel" id="p-accesso">
+    <div class="card">
+      <h2>Accesso</h2>
+      <p class="sub" id="accRepo"></p>
+      <p id="accState"></p>
+      <p class="sub">Tutti possono consultare classifiche e ordine. Per inserire gare, giocatori o chiudere la season serve il codice di accesso del gruppo: lo incolli una volta e resta salvato su questo dispositivo.</p>
+      <form id="accForm" class="row" autocomplete="off">
+        <div class="field" style="flex:1 1 280px"><label for="accToken">Codice di accesso</label><input type="password" id="accToken" placeholder="github_pat_…" autocomplete="off"></div>
+        <button class="btn primary" type="submit">Salva codice</button>
+        <button class="btn" type="button" id="accForget" hidden>Rimuovi da questo dispositivo</button>
+      </form>
+      <div class="msg" id="accMsg" role="status"></div>
+      <p class="sub" id="accHist" style="margin-top:12px"></p>
+    </div>
+  </section>
+
+  <section class="panel" id="p-storico">
+    <div class="card">
+      <h2>Storico gare</h2>
+      <p class="sub">Tutte le gare inserite in questa season, dalla più recente.</p>
+      <div id="history" style="display:grid;gap:12px"></div>
+    </div>
+  </section>
+</main>
+
+<script>
+(() => {
+'use strict';
+/* Configurazione: lascia vuoti owner e repo per ricavarli dall'indirizzo di GitHub Pages
+   (https://OWNER.github.io/REPO/). Compilali solo se usi un dominio personalizzato. */
+const CONFIG = { owner: '', repo: '', branch: 'main', dataPath: 'data.json' };
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const norm = s => String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[^a-z0-9]/g,'');
+const DAYS = ['Domenica','Lunedì','Martedì','Mercoledì','Giovedì','Venerdì','Sabato'];
+const MONTHS = ['gen','feb','mar','apr','mag','giu','lug','ago','set','ott','nov','dic'];
+const iso = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+const parseIso = s => { const [y,m,d] = s.split('-').map(Number); return new Date(y, m-1, d); };
+const addDays = (s,n) => { const d = parseIso(s); d.setDate(d.getDate()+n); return iso(d); };
+const mondayOf = s => { const d = parseIso(s); const wd = (d.getDay()+6)%7; d.setDate(d.getDate()-wd); return iso(d); };
+const fmtDay = s => { const d = parseIso(s); return `${DAYS[d.getDay()]} ${d.getDate()} ${MONTHS[d.getMonth()]}`; };
+const fmtShort = s => { const d = parseIso(s); return `${d.getDate()} ${MONTHS[d.getMonth()]}`; };
+const today = () => iso(new Date());
+const lsGet = k => { try { return localStorage.getItem(k); } catch(e) { return null; } };
+const lsSet = (k,v) => { try { localStorage.setItem(k,v); } catch(e) {} };
+
+/* ---------- scoring ---------- */
+// N players: 1st = N+1, 2nd = N, from 3rd: N+1-pos (last gets 1)
+const points = (N, pos) => pos === 1 ? N+1 : pos === 2 ? N : N+1-pos;
+
+/* ---------- state ---------- */
+const S = { players: [], games: [], config: null, seasons: [], loaded: { players:false, games:false, config:false } };
+const UI = { tab: 'gara', weekOffset: 0, removed: new Set(), fixes: {} };
+let store = null;
+
+function sortedPlayers(){ return [...S.players].sort((a,b) => (a.order ?? 999) - (b.order ?? 999) || a.name.localeCompare(b.name)); }
+function seasonGames(){
+  const sid = S.config?.id;
+  return S.games.filter(g => !sid || !g.season || g.season === sid)
+    .sort((a,b) => a.date.localeCompare(b.date) || a.gara - b.gara);
+}
+
+/* ---------- computations ---------- */
+function compute(){
+  const players = sortedPlayers();
+  const names = players.map(p => p.name);
+  const orderIdx = Object.fromEntries(names.map((n,i) => [n,i]));
+  const base = S.config?.baseline || {};
+  const segBase = S.config?.segBaseline || {};
+  const games = seasonGames();
+  const t = today();
+  const weekStart = addDays(mondayOf(t), 7*UI.weekOffset);
+  const weekEnd = addDays(weekStart, 7);
+  const thisMonday = mondayOf(t);
+
+  const zero = () => Object.fromEntries(names.map(n => [n,0]));
+  const general = zero(), prevGeneral = zero(), weekly = zero(), seg = zero();
+  for (const n of names){ general[n] = base[n]||0; prevGeneral[n] = base[n]||0; seg[n] = segBase[n]||0; }
+
+  const byDay = new Map();
+  for (const g of games){
+    if (!byDay.has(g.date)) byDay.set(g.date, []);
+    byDay.get(g.date).push(g);
+  }
+  const dayPts = {};   // date -> {name: pts}
+  const daySeg = {};   // date -> [names]
+  const running = { ...general };
+  const segPrev = { ...seg };
+  for (const [date, list] of [...byDay.entries()].sort((a,b)=>a[0].localeCompare(b[0]))){
+    const dp = {};
+    const played = new Set();
+    for (const g of list){
+      const N = g.ranking.length;
+      g.ranking.forEach((n,i) => {
+        const p = points(N, i+1);
+        dp[n] = (dp[n]||0) + p;
+        played.add(n);
+      });
+    }
+    dayPts[date] = dp;
+    for (const [n,p] of Object.entries(dp)){
+      running[n] = (running[n]||0) + p;
+      general[n] = (general[n]||0) + p;
+      if (date < thisMonday) prevGeneral[n] = (prevGeneral[n]||0) + p;
+      if (date >= weekStart && date < weekEnd) weekly[n] = (weekly[n]||0) + p;
+    }
+    const max = Math.max(...Object.values(running));
+    const leaders = Object.keys(running).filter(n => running[n] === max && played.has(n));
+    daySeg[date] = leaders;
+    for (const n of leaders){ seg[n] = (seg[n]||0) + 1; if (date < thisMonday) segPrev[n] = (segPrev[n]||0) + 1; }
+  }
+
+  // a parità di punti decide il SEG counter (più SEG = più in alto)
+  const rankOf = (obj, sg = seg) => {
+    const arr = Object.keys(obj).sort((a,b) => obj[b]-obj[a] || (sg[b]||0)-(sg[a]||0) || (orderIdx[a]??99)-(orderIdx[b]??99));
+    const rank = {}; let pv = null, ps = null, prevRank = 0;
+    arr.forEach((n,i) => { if (obj[n] !== pv || (sg[n]||0) !== ps){ prevRank = i+1; pv = obj[n]; ps = sg[n]||0; } rank[n] = prevRank; });
+    return { arr, rank };
+  };
+  const gen = rankOf(general);
+  // settimanale: a pari punti della settimana decide la posizione in generale
+  const rankWeek = () => {
+    const gi = n => gen.arr.indexOf(n);
+    const arr = Object.keys(weekly).sort((a,b) => weekly[b]-weekly[a] || gi(a)-gi(b));
+    const rank = {}; let pv = null, pg = null, prevRank = 0;
+    arr.forEach((n,i) => { if (weekly[n] !== pv || gen.rank[n] !== pg){ prevRank = i+1; pv = weekly[n]; pg = gen.rank[n]; } rank[n] = prevRank; });
+    return { arr, rank };
+  };
+  return { players, names, games, general, prevGeneral, weekly, seg, dayPts, daySeg, byDay,
+    gen, prev: rankOf(prevGeneral, segPrev), wk: rankWeek(), weekStart, weekEnd, rankOf };
+}
+
+/* ---------- paste parsing ---------- */
+function cleanLine(line){
+  let s = line.replace(/[‎‏‪-‮﻿]/g,'').trim();
+  const ts = s.match(/^\[?\d{1,2}[\/.\-]\d{1,2}[\/.\-]\d{2,4},?\s+\d{1,2}[:.]\d{2}(?:[:.]\d{2})?\s*(?:[AaPp]\.?[Mm]\.?)?\]?\s*(?:-\s*)?/);
+  if (ts){ s = s.slice(ts[0].length); const c = s.indexOf(':'); if (c > -1 && c < 40) s = s.slice(c+1); }
+  s = s.replace(/[*_~`]/g,'');
+  s = s.replace(/^\s*(?:\d{1,2}\s*(?:°|º|ª|\.|\)|\]|:|-|–|\s)\s*|[-•·–—>]+\s*)/,'');
+  s = s.replace(/[^\p{L}\p{N}\s'.\-]/gu,' ').replace(/\s+/g,' ').trim();
+  s = s.replace(/\s+\d+$/,'').replace(/^[.\-'\s]+|[.\-'\s]+$/g,'').trim();
+  return s;
+}
+function matchPlayer(clean){
+  const n = norm(clean);
+  if (!n) return null;
+  const fixed = UI.fixes[n];
+  if (fixed) return S.players.find(p => p.name === fixed) || null;
+  for (const p of S.players){
+    if (norm(p.name) === n || (p.aliases||[]).some(a => norm(a) === n)) return p;
+  }
+  if (n.length >= 3){
+    const c = S.players.filter(p => { const pn = norm(p.name); return pn.startsWith(n) || n.startsWith(pn); });
+    if (c.length === 1) return c[0];
+  }
+  return null;
+}
+function parsePaste(text){
+  let lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+  if (lines.length === 1){
+    const parts = lines[0].split(/[,;]+/).map(x => x.trim()).filter(Boolean);
+    if (parts.length > 1) lines = parts;
+    else {
+      const words = lines[0].split(/\s+/);
+      if (words.length > 1 && words.every(w => matchPlayer(cleanLine(w)))) lines = words;
+    }
+  }
+  const items = lines.map(raw => ({ raw, clean: cleanLine(raw) })).filter(x => x.clean);
+  items.forEach(x => { x.player = matchPlayer(x.clean); });
+  return items;
+}
+
+/* ---------- render: gara ---------- */
+function dirValue(){ return document.querySelector('input[name=dir]:checked').value; }
+function currentEntries(){
+  let items = parsePaste($('#paste').value);
+  if (dirValue() === 'last') items = items.reverse();
+  return items;
+}
+function nextGara(date){
+  const used = new Set(S.games.filter(g => g.date === date).map(g => g.gara));
+  for (let i=1;i<=3;i++) if (!used.has(i)) return i;
+  return 3;
+}
+function renderPreview(){
+  const items = currentEntries();
+  const box = $('#prevList');
+  const btn = $('#saveGame');
+  if (!items.length){ box.innerHTML = '<p class="empty">Incolla un elenco per vedere la classifica della gara.</p>'; btn.disabled = true; return; }
+  const N = items.length;
+  const seen = new Map();
+  items.forEach(x => { if (x.player) seen.set(x.player.name, (seen.get(x.player.name)||0)+1); });
+  const opts = sortedPlayers().map(p => `<option value="${esc(p.name)}">${esc(p.name)}</option>`).join('');
+  let problems = 0;
+  const lis = items.map((x,i) => {
+    const pos = i+1, pts = points(N,pos);
+    let status = '', fix = '';
+    if (!x.player){
+      problems++;
+      status = '<span class="pill bad">Sconosciuto</span>';
+      fix = `<div class="fix"><select data-fix="${esc(norm(x.clean))}" aria-label="Abbina ${esc(x.clean)}"><option value="">Abbina a…</option>${opts}</select>
+             <button class="btn small" data-addname="${esc(x.clean)}">Nuovo giocatore «${esc(x.clean)}»</button></div>`;
+    } else if (seen.get(x.player.name) > 1){
+      problems++;
+      status = '<span class="pill bad">Doppio</span>';
+    }
+    const name = x.player ? `<strong>${esc(x.player.name)}</strong>` : `<strong>${esc(x.clean)}</strong>`;
+    const raw = x.player && norm(x.raw) !== norm(x.player.name) ? `<div class="raw">da «${esc(x.raw)}»</div>` : '';
+    return `<li><span class="pos">${pos}°</span><div>${name} ${status}${raw}${fix}</div><span class="pts">${pts} pt</span></li>`;
+  }).join('');
+  box.innerHTML = `<ol>${lis}</ol>`;
+  $('#prevSub').textContent = `${N} giocatori · il vincitore prende ${points(N,1)} punti, l'ultimo 1.`;
+  btn.disabled = problems > 0 || N < 2 || !store || !store.canWrite();
+  if (store && !store.canWrite() && !problems) $('#saveMsg').innerHTML = 'Per salvare serve il codice di accesso: <a href="#accesso">inseriscilo qui</a>.';
+  else if ($('#saveMsg').textContent.includes('codice di accesso')) $('#saveMsg').textContent = '';
+  btn.textContent = `Salva ${$('#gNum').selectedOptions[0].textContent.toLowerCase()} del ${fmtShort($('#gDate').value || today())}`;
+}
+function renderToday(){
+  const c = UI.cache;
+  const date = $('#gDate').value || today();
+  const list = (c.byDay.get(date) || []);
+  if (!list.length){ $('#todayBox').innerHTML = `<p class="empty">Nessuna gara inserita per ${esc(fmtDay(date))}.</p>`; return; }
+  $('#todayBox').innerHTML = dayBlock(date, list, c, true);
+}
+function dayBlock(date, list, c, compact){
+  const segs = c.daySeg[date] || [];
+  const games = list.map(g => {
+    const N = g.ranking.length;
+    return `<div class="game"><div class="game-head"><span>Gara ${g.gara} · ${N} giocatori</span>
+      <button class="btn small danger" data-del="${esc(g.id)}">Elimina</button></div>
+      <ol>${g.ranking.map((n,i) => `<li><span>${esc(n)}</span><span class="pts">${points(N,i+1)}</span></li>`).join('')}</ol></div>`;
+  }).join('');
+  const dp = c.dayPts[date] || {};
+  const tot = Object.entries(dp).sort((a,b)=>b[1]-a[1]).map(([n,p]) => `${esc(n)} ${p}`).join(' · ');
+  return `<div class="day"><div class="day-head"><strong>${esc(fmtDay(date))}</strong>
+     <span>${segs.length ? `<span class="pill seg">Mr SEG: ${segs.map(esc).join(', ')}</span>` : '<span class="pill">Mr SEG: nessuno</span>'}</span></div>
+     <div class="games">${games}</div>
+     <div class="sub" style="margin:0">Totale del giorno: ${tot}</div></div>`;
+}
+
+/* ---------- render: classifiche ---------- */
+function trendCell(n, c){
+  const d = c.prev.rank[n] - c.gen.rank[n];
+  if (d > 0) return `<span class="trend up" aria-label="su di ${d}">▲${d}</span>`;
+  if (d < 0) return `<span class="trend down" aria-label="giù di ${-d}">▼${-d}</span>`;
+  return '<span class="trend eq" aria-label="invariato">–</span>';
+}
+function renderClassifiche(){
+  const c = UI.cache;
+  $('#genTable').innerHTML = `<table><thead><tr><th>#</th><th>Giocatore</th><th class="num">Punti</th><th class="num">Trend</th><th class="num">SEG</th></tr></thead><tbody>
+    ${c.gen.arr.map(n => `<tr class="${c.gen.rank[n]===1?'top1':''} ${c.general[n]===0?'zero':''}"><td class="pos">${c.gen.rank[n]}</td><td>${esc(n)}</td><td class="num pts">${c.general[n]}</td><td class="num">${trendCell(n,c)}</td><td class="num">${c.seg[n]||0}</td></tr>`).join('')}
+    </tbody></table>`;
+  $('#wLabel').textContent = `${fmtShort(c.weekStart)} – ${fmtShort(addDays(c.weekStart,6))}${UI.weekOffset===0?' (questa)':''}`;
+  const wk = c.wk.arr.filter(n => c.weekly[n] > 0);
+  $('#weekTable').innerHTML = wk.length ? `<table><thead><tr><th>#</th><th>Giocatore</th><th class="num">Punti</th></tr></thead><tbody>
+    ${wk.map(n => `<tr class="${c.wk.rank[n]===1?'top1':''}"><td class="pos">${c.wk.rank[n]}</td><td>${esc(n)}</td><td class="num pts">${c.weekly[n]}</td></tr>`).join('')}</tbody></table>`
+    : '<p class="empty">Nessuna gara in questa settimana.</p>';
+
+  const days = [];
+  for (let i=0;i<7;i++){ const d = addDays(c.weekStart,i); if (i<5 || c.dayPts[d]) days.push(d); }
+  const rows = c.names.filter(n => days.some(d => (c.dayPts[d]||{})[n]));
+  if (!rows.length){ $('#dailyTable').innerHTML = '<p class="empty">Nessuna gara in questa settimana.</p>'; return; }
+  rows.sort((a,b) => c.weekly[b]-c.weekly[a]);
+  $('#dailyTable').innerHTML = `<table><thead><tr><th>Giocatore</th>${days.map(d => `<th class="num">${DAYS[parseIso(d).getDay()].slice(0,3)} ${parseIso(d).getDate()}</th>`).join('')}<th class="num">Tot</th></tr></thead><tbody>
+    ${rows.map(n => `<tr><td>${esc(n)}</td>${days.map(d => { const v=(c.dayPts[d]||{})[n]; const s=(c.daySeg[d]||[]).includes(n); return `<td class="num">${v?v:'·'}${s?' <span class="pill seg" title="Mr SEG">SEG</span>':''}</td>`; }).join('')}<td class="num pts">${c.weekly[n]}</td></tr>`).join('')}
+    </tbody></table>`;
+}
+
+/* ---------- render: tavolo ---------- */
+function seatOrder(n){
+  const odd = [], even = [];
+  for (let i=1;i<=n;i++) (i%2 ? odd : even).push(i);
+  return odd.concat(even.reverse());
+}
+function lastGamePlayers(){
+  const g = seasonGames(); return g.length ? g[g.length-1].ranking : [];
+}
+
+/* Seats around the table, following the schema arrows:
+   left side (bottom→top): 1, 5, 6, 7 … then 2 at the top
+   right side (top→bottom): 3, then the next seats, then 4 at the bottom */
+function schemaSides(n){
+  if (n < 1) return { L: [], R: [] };
+  const all = Array.from({length:n}, (_,i) => i+1);
+  if (n <= 4){
+    const L = [2,1].filter(x => x<=n), R = [3,4].filter(x => x<=n);
+    return { L, R };
+  }
+  const leftCount = Math.ceil(n/2), rightCount = n - leftCount;
+  const extra = all.slice(4);                    // 5..n
+  const leftMid = extra.slice(0, leftCount-2);   // go up the left side
+  const rightMid = extra.slice(leftCount-2);     // then down the right side
+  const L = [2, ...leftMid.slice().reverse(), 1];       // top → bottom
+  const R = [3, ...rightMid, 4].slice(0, Math.max(rightCount,2));
+  if (rightCount < 2) R.splice(1); 
+  return { L, R };
+}
+function drawSchema(seats){
+  const svg = $('#schema');
+  const n = seats.length;
+  if (n < 2){ svg.innerHTML = ''; svg.removeAttribute('viewBox'); $('#schemaNote').textContent = ''; return; }
+  const { L, R } = schemaSides(n);
+  const rows = Math.max(L.length, R.length, 3);
+  const W = 520, bw = 120, bh = 34, gap = 10, top = 8;
+  const y = i => top + i*(bh+gap);
+  const H = y(rows-1) + bh + top;
+  const colX = { L: 8, R: W - 8 - bw };
+  const ys = (list) => list.map((_,i) => list.length === rows ? y(i) : (i === list.length-1 ? y(rows-1) : y(i)));
+  const box = (x, yy, seat) => { const name = seats[seat-1];
+    return `<rect x="${x}" y="${yy}" width="${bw}" height="${bh}" rx="5" fill="#000" stroke="var(--line)"/>
+      <text class="seatno" x="${x+10}" y="${yy+22}">${seat}</text>
+      <text class="nm" x="${x+(seat>9?36:28)}" y="${yy+22}">${esc(name.length>11?name.slice(0,10)+'…':name)}</text>`; };
+  const ly = ys(L), ry = ys(R);
+  let out = `<defs><marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/></marker></defs>`;
+  const ax1 = colX.L + bw + 18, ax2 = colX.R - 18;
+  const tTop = y(1) - 2, tBot = y(rows-1) - gap/2 - 14;
+  const tx1 = ax1 + 18, tx2 = ax2 - 18;
+  const tableH = Math.max(40, tBot - tTop);
+  out += `<rect x="${tx1}" y="${tTop}" width="${tx2-tx1}" height="${tableH}" rx="3" fill="#0b2347" stroke="var(--table)" stroke-width="2"/>
+    <line x1="${(tx1+tx2)/2}" y1="${tTop}" x2="${(tx1+tx2)/2}" y2="${tTop+tableH}" stroke="var(--ink)" stroke-width="1.5"/>
+    <line x1="${tx1}" y1="${tTop+tableH/2}" x2="${tx2}" y2="${tTop+tableH/2}" stroke="var(--table)" stroke-width="1" opacity=".6"/>
+    <line x1="${ax1-8}" y1="${y(0)+bh/2}" x2="${ax2+8}" y2="${y(0)+bh/2}" stroke="var(--muted)" stroke-width="1.5" stroke-dasharray="5 4" marker-end="url(#ah)"/>
+    <line x1="${ax2+8}" y1="${tTop+tableH+14}" x2="${ax1-8}" y2="${tTop+tableH+14}" stroke="var(--muted)" stroke-width="1.5" stroke-dasharray="5 4" marker-end="url(#ah)"/>
+    <line x1="${ax1}" y1="${tTop+tableH+12}" x2="${ax1}" y2="${y(0)+bh+4}" stroke="var(--ball)" stroke-width="1.5" marker-end="url(#ah)"/>
+    <line x1="${ax2}" y1="${y(0)+bh+4}" x2="${ax2}" y2="${tTop+tableH+12}" stroke="var(--ball)" stroke-width="1.5" marker-end="url(#ah)"/>`;
+  L.forEach((s,i) => out += box(colX.L, ly[i], s));
+  R.forEach((s,i) => out += box(colX.R, ry[i], s));
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  svg.innerHTML = out;
+  $('#schemaNote').textContent = 'I numeri sono le posizioni in classifica. 1 in fondo a sinistra, 2 in alto a sinistra, 3 in alto a destra, 4 in fondo a destra; dal 5 si sale a sinistra, poi si scende a destra.';
+}
+function renderTavolo(){
+  const c = UI.cache;
+  const players = sortedPlayers().filter(p => p.active !== false);
+  $('#presentChips').innerHTML = players.map(p => `<button class="chip" aria-pressed="${!UI.removed.has(p.name)}" data-present="${esc(p.name)}">${esc(p.name)}</button>`).join('');
+  const present = players.map(p => p.name).filter(n => !UI.removed.has(n) && n in c.general);
+  // Primo giorno della settimana (nessuna gara nei giorni precedenti di questa settimana): generale; altrimenti settimanale
+  const t = today(), mon = mondayOf(t);
+  const wkSoFar = Object.fromEntries(c.names.map(n => [n,0]));
+  let earlierDays = 0;
+  for (const [d, dp] of Object.entries(c.dayPts)){
+    if (d >= mon && d <= t){ for (const [n,v] of Object.entries(dp)) wkSoFar[n] = (wkSoFar[n]||0) + v; }
+    if (d >= mon && d < t) earlierDays++;
+  }
+  const useWeek = earlierDays > 0;
+  const basis = useWeek ? wkSoFar : c.general;
+  const ranked = useWeek
+    ? [...present].sort((a,b) => basis[b]-basis[a] || c.gen.arr.indexOf(a)-c.gen.arr.indexOf(b))
+    : [...present].sort((a,b) => c.gen.arr.indexOf(a)-c.gen.arr.indexOf(b));
+  $('#seatBasis').textContent = useWeek
+    ? `Basato sulla classifica settimanale: questa settimana si è già giocato. A pari punti decide la posizione in generale.`
+    : `Basato sulla classifica generale: è il primo giorno di gioco della settimana. A pari punti decide il SEG counter.`;
+  UI.seats = [];
+  if (ranked.length < 2){ $('#seatList').innerHTML = '<p class="empty">Seleziona almeno due giocatori.</p>'; }
+  else {
+    UI.seats = ranked.slice();
+    $('#seatList').innerHTML = `<ol class="seats">${ranked.map((n,i) =>
+      `<li><span class="n">${i+1}</span><span class="who">${esc(n)}</span><span class="meta">${basis[n]} pt ${useWeek?'settimana':'generale · '+(c.seg[n]||0)+' SEG'}</span></li>`).join('')}</ol>`;
+  }
+  // tiers
+  const vals = c.gen.arr.map(n => c.general[n]);
+  const distinctDesc = [...new Set(vals)].sort((a,b)=>b-a);
+  const sortedVals = [...vals].sort((a,b)=>b-a);
+  const who = v => c.gen.arr.filter(n => c.general[n] === v).map(esc).join(', ');
+  const aris = ['SEG','SE','S'].map((lab,i) => [lab, sortedVals[i]]);
+  const nz = vals.filter(v => v > 0).sort((a,b)=>a-b);
+  const pez = [['2 bonus', nz[0]], ['1 bonus', nz[1]]];
+  $('#tiers').innerHTML = `<div class="tier"><h4>Aristocratici</h4><dl>${aris.map(([l,v]) => `<dt>${l}</dt><dd>${v!=null && v>0 ? who(v)+` <span class="sub">(${v})</span>` : '–'}</dd>`).join('')}</dl></div>
+    <div class="tier"><h4>Pezzenti</h4><dl>${pez.map(([l,v]) => `<dt>${l}</dt><dd>${v!=null ? who(v)+` <span class="sub">(${v})</span>` : '–'}</dd>`).join('')}</dl></div>`;
+  void distinctDesc;
+  drawSchema(UI.seats || []);
+}
+
+/* ---------- render: giocatori & storico ---------- */
+function renderGiocatori(){
+  const c = UI.cache;
+  const rows = sortedPlayers();
+  const played = {}; for (const g of c.games) for (const n of g.ranking) played[n] = (played[n]||0)+1;
+  $('#playersTable').innerHTML = rows.length ? `<table><thead><tr><th>Giocatore</th><th>Nomi alternativi</th><th class="num">Gare season</th><th class="num">Generale</th></tr></thead><tbody>
+    ${rows.map(p => `<tr><td><strong>${esc(p.name)}</strong></td><td>${(p.aliases||[]).map(a=>`<span class="pill">${esc(a)}</span>`).join(' ') || '<span class="sub">–</span>'}</td><td class="num">${played[p.name]||0}</td><td class="num pts">${c.general[p.name]||0}</td></tr>`).join('')}
+    </tbody></table>` : '<p class="empty">Nessun giocatore ancora.</p>';
+}
+function renderStorico(){
+  const c = UI.cache;
+  const days = [...c.byDay.keys()].sort().reverse();
+  $('#history').innerHTML = days.length ? days.map(d => dayBlock(d, c.byDay.get(d), c)).join('') : '<p class="empty">Nessuna gara inserita in questa season.</p>';
+}
+function renderHeader(){
+  const cfg = S.config;
+  if (!cfg){ $('#seasonInfo').innerHTML = '<span>Nessuna season configurata</span>'; return; }
+  const end = cfg.end ? parseIso(cfg.end) : null;
+  let left = '';
+  if (end){ const d = Math.round((end - parseIso(today()))/86400000); left = d >= 0 ? `${d} giorni alla fine` : 'season conclusa'; }
+  $('#seasonInfo').innerHTML = `<span>${esc(cfg.name||'Season')}</span>${end?`<span>Fine ${end.getDate()} ${MONTHS[end.getMonth()]}</span><span>${left}</span>`:''}<span>${seasonGames().length} gare</span>`;
+}
+
+function seasonStandings(c){
+  const tot = n => (c.general[n]||0) + (c.seg[n]||0);
+  const arr = [...c.gen.arr].sort((a,b) => tot(b)-tot(a) || c.gen.arr.indexOf(a)-c.gen.arr.indexOf(b));
+  return arr.map((n,i) => ({ name: n, pos: i+1, points: c.general[n]||0, seg: c.seg[n]||0, total: tot(n) }));
+}
+function nextSeasonName(name){
+  const m = String(name||'').match(/^(.*?)(\d+)\s*$/);
+  return m ? `${m[1]}${Number(m[2])+1}` : 'Nuova season';
+}
+function renderSeason(){
+  const c = UI.cache, cfg = S.config || {};
+  const st = seasonStandings(c);
+  $('#winTable').innerHTML = `<table><thead><tr><th>#</th><th>Giocatore</th><th class="num">Punti</th><th class="num">SEG</th><th class="num">Totale</th></tr></thead><tbody>
+    ${st.map(r => `<tr class="${r.pos===1?'top1':''} ${r.total===0?'zero':''}"><td class="pos">${r.pos}</td><td>${esc(r.name)}</td><td class="num">${r.points}</td><td class="num">${r.seg}</td><td class="num pts">${r.total}</td></tr>`).join('')}
+    </tbody></table>`;
+  const leader = st[0];
+  $('#closeSub').textContent = `${cfg.name || 'Season'}${cfg.end ? ', fine prevista ' + fmtShort(cfg.end) : ''}. Alla chiusura ${leader && leader.total > 0 ? leader.name + ' (' + leader.total + ')' : 'il primo'} va nell'albo d'oro e punti e SEG ripartono da zero. Le gare della season chiusa restano salvate.`;
+  const nm = $('#newSeasonName'); if (!nm.dataset.touched) nm.value = nextSeasonName(cfg.name);
+  const list = [...(S.seasons||[])].sort((a,b) => String(b.closedAt||'').localeCompare(String(a.closedAt||'')));
+  $('#albo').innerHTML = list.length ? `<table><thead><tr><th>Season</th><th>Vincitore</th><th class="num">Totale</th><th>Podio</th><th>Chiusa il</th></tr></thead><tbody>
+    ${list.map(r => `<tr><td><strong>${esc(r.name)}</strong></td><td>${esc(r.winner)}</td><td class="num pts">${r.winnerTotal}</td><td>${(r.standings||[]).slice(1,3).map(x => esc(x.name)+' ('+x.total+')').join(' · ')}</td><td>${r.closedAt ? fmtShort(r.closedAt.slice(0,10)) : ''}</td></tr>`).join('')}
+    </tbody></table>` : '<p class="empty">Nessuna season chiusa con l\'app finora.</p>';
+}
+/* ---------- andamento ---------- */
+const SERIES = ['#3987e5','#d95926','#199e70','#c98500'];   // validated on #000
+const HEAT = ['#0d1b2e','#104281','#1c5cab','#2a78d6','#5598e7','#9ec5f4'];
+function seriesData(c){
+  const base = S.config?.baseline || {}, segBase = S.config?.segBaseline || {};
+  const days = Object.keys(c.dayPts).sort();
+  const pts = Object.fromEntries(c.names.map(n => [n, base[n]||0]));
+  const sg = Object.fromEntries(c.names.map(n => [n, segBase[n]||0]));
+  const snap = (label, date) => ({ label, date, pts: { ...pts }, sg: { ...sg } });
+  const out = [snap('Inizio', null)];
+  for (const d of days){
+    for (const [n,v] of Object.entries(c.dayPts[d])) pts[n] = (pts[n]||0) + v;
+    for (const n of (c.daySeg[d]||[])) sg[n] = (sg[n]||0) + 1;
+    out.push(snap(fmtShort(d), d));
+  }
+  return out;
+}
+function niceMax(v){ if (v <= 10) return 10; const p = Math.pow(10, Math.floor(Math.log10(v))); const m = v/p; return (m <= 2 ? 2 : m <= 2.5 ? 2.5 : m <= 5 ? 5 : 10) * p; }
+function renderAndamento(){
+  const c = UI.cache;
+  const metric = (document.querySelector('input[name=metric]:checked')||{}).value || 'pts';
+  const data = seriesData(c);
+  const val = (pt, n) => metric === 'tot' ? (pt.pts[n]||0) + (pt.sg[n]||0) : (pt.pts[n]||0);
+  const last = data[data.length-1];
+  const order = [...c.names].sort((a,b) => val(last,b) - val(last,a));
+  if (!UI.hlTouched && (!UI.hl || !UI.hl.length)) UI.hl = order.slice(0,4);
+  UI.hl = UI.hl.filter(n => c.names.includes(n));
+  if (!UI.colorOf) UI.colorOf = {};
+  // colour follows the player, never the rank
+  const used = new Set(UI.hl.map(n => UI.colorOf[n]).filter(Boolean));
+  for (const n of UI.hl) if (!UI.colorOf[n] || ![...SERIES].includes(UI.colorOf[n])){ UI.colorOf[n] = SERIES.find(x => !used.has(x)); used.add(UI.colorOf[n]); }
+  for (const n of Object.keys(UI.colorOf)) if (!UI.hl.includes(n)) delete UI.colorOf[n];
+  $('#hlHint').textContent = `${UI.hl.length}/4 in evidenza`;
+  $('#hlChips').innerHTML = order.map(n => { const on = UI.hl.includes(n);
+    return `<button class="chip" aria-pressed="${on}" data-hl="${esc(n)}">${on ? `<span class="dot" style="background:${UI.colorOf[n]}"></span>` : ''}${esc(n)}</button>`; }).join('');
+
+  const svg = $('#lineChart');
+  const W = 900, H = 380, m = { l: 46, r: 96, t: 14, b: 30 };
+  const iw = W - m.l - m.r, ih = H - m.t - m.b;
+  const ymax = niceMax(Math.max(1, ...data.flatMap(pt => c.names.map(n => val(pt,n)))));
+  const nx = data.length;
+  const x = i => m.l + (nx === 1 ? iw/2 : i * iw/(nx-1));
+  const y = v => m.t + ih - v/ymax*ih;
+  let g = '';
+  for (let k=0;k<=4;k++){ const v = ymax*k/4, yy = y(v); g += `<line class="grid" x1="${m.l}" x2="${m.l+iw}" y1="${yy}" y2="${yy}"/><text class="axis" x="${m.l-8}" y="${yy+4}" text-anchor="end">${Math.round(v)}</text>`; }
+  const step = Math.max(1, Math.ceil(nx / 8));
+  data.forEach((pt,i) => { if (i % step === 0 || i === nx-1) g += `<text class="axis" x="${x(i)}" y="${H-8}" text-anchor="middle">${esc(pt.label)}</text>`; });
+  const path = n => data.map((pt,i) => `${i?'L':'M'}${x(i).toFixed(1)},${y(val(pt,n)).toFixed(1)}`).join('');
+  const others = c.names.filter(n => !UI.hl.includes(n));
+  others.forEach(n => g += `<path d="${path(n)}" fill="none" stroke="#2c323b" stroke-width="1.5" stroke-linejoin="round"/>`);
+  UI.hl.forEach(n => g += `<path d="${path(n)}" fill="none" stroke="#000" stroke-width="5" stroke-linejoin="round"/><path d="${path(n)}" fill="none" stroke="${UI.colorOf[n]}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`);
+  // direct end labels, nudged apart
+  const ends = UI.hl.map(n => ({ n, y: y(val(last,n)) })).sort((a,b) => a.y-b.y);
+  for (let i=1;i<ends.length;i++) if (ends[i].y - ends[i-1].y < 15) ends[i].y = ends[i-1].y + 15;
+  ends.forEach(e => { g += `<circle cx="${x(nx-1)}" cy="${y(val(last,e.n))}" r="4" fill="${UI.colorOf[e.n]}" stroke="#000" stroke-width="2"/><text class="lbl" x="${x(nx-1)+10}" y="${e.y+4}">${esc(e.n)} ${val(last,e.n)}</text>`; });
+  g += `<line id="xhair" x1="0" x2="0" y1="${m.t}" y2="${m.t+ih}" stroke="var(--muted)" stroke-width="1" stroke-dasharray="3 3" visibility="hidden"/>`;
+  g += `<rect id="hit" x="${m.l}" y="${m.t}" width="${iw}" height="${ih}" fill="transparent"/>`;
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  svg.innerHTML = g;
+  $('#trendSub').textContent = nx === 1
+    ? 'Il grafico si riempie man mano che inserite le gare: per ora c\'è solo il punto di partenza della season.'
+    : `Punti cumulati in ${nx-1} giorni di gioco${metric==='tot'?', SEG compresi':''}. Scegli fino a 4 giocatori da mettere in evidenza; gli altri restano in grigio.`;
+  UI.lineCtx = { data, val, x, nx, W, m, iw };
+
+  // heatmap
+  const days = data.slice(1);
+  if (!days.length){ $('#heat').innerHTML = '<p class="empty">Nessuna giornata giocata in questa season.</p>'; return; }
+  const maxDay = Math.max(1, ...days.flatMap(pt => Object.values(c.dayPts[pt.date])));
+  const rowsH = order.filter(n => days.some(pt => c.dayPts[pt.date][n]));
+  const cell = v => { if (!v) return `<td class="v" style="color:#2c323b">·</td>`; const k = Math.min(HEAT.length-1, Math.floor(v/maxDay*(HEAT.length-1)+0.0001)); return [k, HEAT[k]]; };
+  $('#heat').innerHTML = `<table class="heat"><thead><tr><th>Giocatore</th>${days.map(pt => `<th class="num" style="text-align:center">${esc(pt.label)}</th>`).join('')}<th class="num">Tot</th></tr></thead><tbody>
+    ${rowsH.map(n => { let tot = 0; return `<tr><td class="nm">${esc(n)}</td>${days.map(pt => { const v = c.dayPts[pt.date][n]||0; tot += v; const r = cell(v); if (!Array.isArray(r)) return r;
+      const isSeg = (c.daySeg[pt.date]||[]).includes(n);
+      return `<td class="v${isSeg?' mrseg':''}" style="background:${r[1]};color:${r[0]>=4?'#000':'var(--ink)'}" title="${esc(n)}, ${esc(fmtDay(pt.date))}: ${v} punti${isSeg?' · Mr SEG':''}">${v}</td>`; }).join('')}<td class="num pts">${tot}</td></tr>`; }).join('')}
+    </tbody></table>`;
+}
+function lineHover(ev){
+  const ctx = UI.lineCtx; if (!ctx || ctx.nx < 1) return;
+  const svg = $('#lineChart'), r = svg.getBoundingClientRect();
+  const px = (ev.clientX - r.left) / r.width * ctx.W;
+  let i = ctx.nx === 1 ? 0 : Math.round((px - ctx.m.l) / (ctx.iw/(ctx.nx-1)));
+  i = Math.max(0, Math.min(ctx.nx-1, i));
+  const pt = ctx.data[i], xh = $('#xhair'), tip = $('#lineTip');
+  xh.setAttribute('x1', ctx.x(i)); xh.setAttribute('x2', ctx.x(i)); xh.setAttribute('visibility','visible');
+  const all = UI.cache.names.map(n => [n, ctx.val(pt,n)]).sort((a,b) => b[1]-a[1]);
+  const pos = n => all.findIndex(a => a[0] === n) + 1;
+  const rows = UI.hl.map(n => [n, ctx.val(pt,n)]).sort((a,b) => b[1]-a[1]);
+  tip.innerHTML = `<div class="t-head">${pt.date ? esc(fmtDay(pt.date)) : 'Inizio season'}</div>` +
+    rows.map(([n,v]) => `<div class="t-row"><span class="sw" style="background:${UI.colorOf[n]}"></span><strong>${esc(n)} ${v}</strong><span>${pos(n)}°</span></div>`).join('');
+  tip.hidden = false;
+  const wrap = $('#lineWrap').getBoundingClientRect();
+  const left = ev.clientX - wrap.left;
+  tip.style.left = Math.min(left + 14, wrap.width - tip.offsetWidth - 4) + 'px';
+  if (left + 14 + tip.offsetWidth > wrap.width) tip.style.left = Math.max(0, left - tip.offsetWidth - 14) + 'px';
+  tip.style.top = '10px';
+}
+function renderAll(){
+  UI.cache = compute();
+  renderHeader();
+  renderPreview();
+  renderToday();
+  renderClassifiche();
+  renderTavolo();
+  renderGiocatori();
+  renderStorico();
+  renderSeason();
+  renderAndamento();
+  renderAccess();
+}
+
+/* ---------- tabs ---------- */
+const TABS = ['gara','classifica','tavolo','giocatori','storico','andamento','season','accesso'];
+function showTab(){
+  const h = location.hash.replace('#','');
+  UI.tab = TABS.includes(h) ? h : 'gara';
+  for (const t of TABS){
+    $('#p-'+t).classList.toggle('on', t === UI.tab);
+    document.querySelector(`nav a[data-tab="${t}"]`).toggleAttribute('aria-current', t === UI.tab);
+    if (t === UI.tab) document.querySelector(`nav a[data-tab="${t}"]`).setAttribute('aria-current','page');
+  }
+}
+window.addEventListener('hashchange', showTab);
+
+/* ---------- status ---------- */
+function setStatus(text, err){
+  const el = $('#status');
+  if (!text){ el.hidden = true; return; }
+  el.hidden = false; el.textContent = text; el.classList.toggle('err', !!err);
+}
+
+/* ---------- stores ---------- */
+function slug(name){ return norm(name) || ('p' + Date.now()); }
+
+/* Operazioni sui dati: funzioni pure su un oggetto {config, players, games, seasons} */
+const OPS = {
+  addPlayer: name => d => {
+    const order = Math.max(0, ...d.players.map(p => p.order||0)) + 1;
+    let id = slug(name); while (d.players.some(p => p.id === id)) id += '1';
+    d.players.push({ id, name, order, active: true, aliases: [] });
+  },
+  addAlias: (playerId, alias) => d => {
+    const p = d.players.find(x => x.id === playerId); if (!p) return;
+    p.aliases = [...new Set([...(p.aliases||[]), alias])];
+  },
+  saveGame: g => d => { d.games = d.games.filter(x => x.id !== g.id); d.games.push(g); },
+  deleteGame: id => d => { d.games = d.games.filter(x => x.id !== id); },
+  closeSeason: (record, next) => d => { d.seasons = (d.seasons||[]).filter(x => x.id !== record.id); d.seasons.push(record); d.config = next; },
+};
+const MSG = {
+  addPlayer: name => `Nuovo giocatore: ${name}`,
+  addAlias: (p, a) => `Nome alternativo per ${p.name}: ${a}`,
+  saveGame: g => `Gara ${g.gara} del ${g.date}: ${g.ranking.join(', ')}`,
+  deleteGame: id => `Eliminata gara ${id}`,
+  closeSeason: (r, n) => `Chiusa ${r.name} (vince ${r.winner}), inizia ${n.name}`,
+};
+function emptyData(){ return { version: 1, config: null, players: [], games: [], seasons: [] }; }
+function normalizeData(d){ d = d || {}; return { version: 1, config: d.config || null, players: d.players || [], games: d.games || [], seasons: d.seasons || [] }; }
+let lastJson = '';
+function applyData(d){
+  const j = JSON.stringify(d);
+  if (j === lastJson) return;
+  lastJson = j;
+  S.players = d.players; S.games = d.games; S.config = d.config; S.seasons = d.seasons;
+  renderAll();
+}
+function storeFromOps(mutate){
+  return {
+    addPlayer: name => mutate(OPS.addPlayer(name), MSG.addPlayer(name)),
+    addAlias: (player, alias) => mutate(OPS.addAlias(player.id, alias), MSG.addAlias(player, alias)),
+    saveGame: g => mutate(OPS.saveGame(g), MSG.saveGame(g)),
+    deleteGame: id => mutate(OPS.deleteGame(id), MSG.deleteGame(id)),
+    closeSeason: (r, n) => mutate(OPS.closeSeason(r, n), MSG.closeSeason(r, n)),
+  };
+}
+
+/* ---- GitHub: i dati stanno in data.json nel repository, ogni modifica è un commit ---- */
+const TOKEN_KEY = 'segfolt-gh-token';
+const GH = (() => {
+  const m = location.hostname.match(/^([^.]+)\.github\.io$/i);
+  const first = location.pathname.split('/').filter(Boolean)[0];
+  const owner = CONFIG.owner || (m ? m[1] : '');
+  const repo = CONFIG.repo || (m ? (first && !/\.html?$/.test(first) ? first : `${m[1]}.github.io`) : '');
+  return { owner, repo, branch: CONFIG.branch || 'main', path: CONFIG.dataPath || 'data.json' };
+})();
+const ghToken = () => (lsGet(TOKEN_KEY) || '').trim();
+const b64decode = s => new TextDecoder().decode(Uint8Array.from(atob(s.replace(/\s/g,'')), c => c.charCodeAt(0)));
+const b64encode = str => { const bytes = new TextEncoder().encode(str); let bin = ''; for (let i=0;i<bytes.length;i+=0x8000) bin += String.fromCharCode.apply(null, bytes.subarray(i, i+0x8000)); return btoa(bin); };
+function ghHeaders(tok){ return { Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28', ...(tok ? { Authorization: `Bearer ${tok}` } : {}) }; }
+const ghApi = p => `https://api.github.com/repos/${GH.owner}/${GH.repo}${p}`;
+function ghError(status, body){
+  const e = new Error(body?.message || ('HTTP ' + status)); e.status = status;
+  e.code = status === 401 ? 'auth' : status === 403 || status === 404 ? 'perm' : status === 409 ? 'conflict' : (status === 422 && /sha/i.test(body?.message||'')) ? 'conflict' : 'http';
+  return e;
+}
+async function ghRead(tok){
+  if (tok){
+    const r = await fetch(ghApi(`/contents/${GH.path}?ref=${encodeURIComponent(GH.branch)}&t=${Date.now()}`), { headers: ghHeaders(tok), cache: 'no-store' });
+    if (r.status === 404){ const body = await r.json().catch(() => ({})); const e = ghError(404, body); e.code = 'missing'; throw e; }
+    if (!r.ok) throw ghError(r.status, await r.json().catch(() => ({})));
+    const j = await r.json();
+    let text = j.content ? b64decode(j.content) : '';
+    if (!text && j.sha){
+      const rb = await fetch(ghApi(`/git/blobs/${j.sha}`), { headers: ghHeaders(tok), cache: 'no-store' });
+      if (!rb.ok) throw ghError(rb.status, await rb.json().catch(() => ({})));
+      text = b64decode((await rb.json()).content);
+    }
+    return { data: normalizeData(JSON.parse(text || '{}')), sha: j.sha };
+  }
+  // senza codice: la copia pubblicata da GitHub Pages (si aggiorna circa un minuto dopo ogni commit)
+  const r = await fetch(`${GH.path}?t=${Date.now()}`, { cache: 'no-store' });
+  if (!r.ok) throw ghError(r.status, {});
+  return { data: normalizeData(await r.json()), sha: null };
+}
+async function ghWrite(data, sha, message, tok){
+  const body = { message, content: b64encode(JSON.stringify(data, null, 1) + '\n'), branch: GH.branch };
+  if (sha) body.sha = sha;
+  const r = await fetch(ghApi(`/contents/${GH.path}`), { method: 'PUT', headers: { ...ghHeaders(tok), 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  if (!r.ok) throw ghError(r.status, await r.json().catch(() => ({})));
+  return (await r.json()).content?.sha;
+}
+function makeGitHubStore(){
+  let busy = Promise.resolve();
+  const mutate = (op, message) => {
+    const run = async () => {
+      const tok = ghToken();
+      if (!tok){ const e = new Error('Serve il codice di accesso'); e.code = 'auth'; throw e; }
+      for (let attempt = 0; attempt < 4; attempt++){
+        let cur;
+        try { cur = await ghRead(tok); }
+        catch(e){ if (e.code === 'missing') cur = { data: emptyData(), sha: null }; else throw e; }
+        const next = normalizeData(JSON.parse(JSON.stringify(cur.data)));
+        op(next);
+        try { await ghWrite(next, cur.sha, message, tok); applyData(next); return; }
+        catch(e){ if (e.code !== 'conflict') throw e; await new Promise(r => setTimeout(r, 400 + Math.random()*600)); }
+      }
+      const e = new Error('Troppe modifiche contemporanee, riprova'); e.code = 'conflict'; throw e;
+    };
+    busy = busy.then(run, run);
+    return busy;
+  };
+  let timer = null;
+  const refresh = async (quiet) => {
+    try {
+      const { data } = await ghRead(ghToken());
+      applyData(data);
+      setStatus(data.config ? '' : 'Il file dati è vuoto: nessuna season configurata.');
+    } catch(e){
+      if (!quiet || !S.config) setStatus(readErrorText(e), true);
+    }
+  };
+  return {
+    kind: 'github',
+    canWrite: () => !!ghToken(),
+    ...storeFromOps(mutate),
+    refresh,
+    start(){
+      refresh(false);
+      timer = setInterval(() => { if (document.visibilityState === 'visible') refresh(true); }, 30000);
+      document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') refresh(true); });
+    }
+  };
+}
+function readErrorText(e){
+  if (e.code === 'auth') return 'Il codice di accesso non è valido o è scaduto: aggiornalo nella scheda Accesso.';
+  if (e.code === 'perm') return `Non riesco a leggere i dati del repository ${GH.owner}/${GH.repo}: controlla che il codice abbia accesso a questo repository.`;
+  if (e.code === 'missing') return 'Nel repository manca il file data.json.';
+  return 'Non riesco a caricare i dati (' + (e.message || 'errore di rete') + '). Riprovo tra poco.';
+}
+function writeErrorText(e){
+  if (e.code === 'auth') return 'Per salvare serve il codice di accesso: inseriscilo nella scheda Accesso.';
+  if (e.code === 'perm') return 'Il codice non ha il permesso di scrivere nel repository (serve "Contents: Read and write").';
+  if (e.code === 'conflict') return 'Qualcun altro stava salvando nello stesso momento: riprova.';
+  return 'Salvataggio non riuscito: ' + (e.message || 'errore di rete') + '.';
+}
+
+/* ---- Locale: per provare la pagina aperta come file, senza GitHub ---- */
+function makeLocalStore(){
+  const KEY = 'segfolt-local-v1';
+  const load = () => { try { return JSON.parse(lsGet(KEY) || 'null'); } catch(e){ return null; } };
+  const mutate = async (op) => { const d = normalizeData(JSON.parse(JSON.stringify({ config: S.config, players: S.players, games: S.games, seasons: S.seasons }))); op(d); lsSet(KEY, JSON.stringify(d)); applyData(d); };
+  return {
+    kind: 'local',
+    canWrite: () => true,
+    ...storeFromOps(mutate),
+    refresh: async () => {},
+    async start(){
+      let d = load();
+      if (!d){ try { const r = await fetch(`${CONFIG.dataPath || 'data.json'}?t=${Date.now()}`); if (r.ok) d = await r.json(); } catch(e){} }
+      d = normalizeData(d);
+      if (!d.config) d.config = { id: 'local', name: 'Season', baseline: {}, segBaseline: {} };
+      setStatus('Modalità prova: la pagina non è su GitHub Pages, le modifiche restano solo in questo browser.');
+      applyData(d);
+    }
+  };
+}
+
+/* ---------- events ---------- */
+$('#gDate').value = today();
+$('#gNum').value = '1';
+const savedDir = lsGet('segfolt-dir'); if (savedDir === 'first') $('#dirFirst').checked = true;
+$('#paste').addEventListener('input', renderPreview);
+document.querySelectorAll('input[name=dir]').forEach(r => r.addEventListener('change', () => { lsSet('segfolt-dir', dirValue()); renderPreview(); }));
+$('#gDate').addEventListener('change', () => { $('#gNum').value = String(nextGara($('#gDate').value)); renderPreview(); renderToday(); });
+$('#gNum').addEventListener('change', renderPreview);
+$('#clearPaste').addEventListener('click', () => { $('#paste').value=''; $('#saveMsg').textContent=''; renderPreview(); });
+
+$('#prevList').addEventListener('change', async e => {
+  const sel = e.target.closest('select[data-fix]'); if (!sel || !sel.value) return;
+  UI.fixes[sel.dataset.fix] = sel.value;
+  const raw = currentEntries().find(x => norm(x.clean) === sel.dataset.fix);
+  const p = S.players.find(p => p.name === sel.value);
+  renderPreview();
+  if (p && raw && store){ try { await store.addAlias(p, raw.clean); } catch(err){ /* alias is a convenience */ } }
+});
+$('#prevList').addEventListener('click', async e => {
+  const b = e.target.closest('button[data-addname]'); if (!b) return;
+  const name = b.dataset.addname.replace(/^\p{L}/u, ch => ch.toUpperCase());
+  b.disabled = true;
+  try { await store.addPlayer(name); UI.fixes[norm(b.dataset.addname)] = name; }
+  catch(err){ $('#saveMsg').className='msg err'; $('#saveMsg').textContent = writeErrorText(err); }
+  renderPreview();
+});
+
+let pendingOverwrite = null;
+$('#saveGame').addEventListener('click', async () => {
+  const items = currentEntries();
+  if (!items.length || items.some(x => !x.player)) return;
+  const date = $('#gDate').value || today();
+  const gara = Number($('#gNum').value);
+  const id = `${date}_g${gara}`;
+  const msg = $('#saveMsg');
+  const exists = S.games.some(g => g.id === id);
+  if (exists && pendingOverwrite !== id){
+    pendingOverwrite = id;
+    msg.className = 'msg err';
+    msg.textContent = `La gara ${gara} del ${fmtShort(date)} esiste già. Premi di nuovo "Salva" per sovrascriverla, oppure cambia numero di gara.`;
+    return;
+  }
+  pendingOverwrite = null;
+  const btn = $('#saveGame'); btn.disabled = true;
+  try {
+    await store.saveGame({ id, date, gara, season: S.config?.id || '', ranking: items.map(x => x.player.name), savedAt: new Date().toISOString() });
+    msg.className = 'msg ok'; msg.textContent = `Gara ${gara} del ${fmtShort(date)} salvata.`;
+    $('#paste').value = '';
+    $('#gNum').value = String(nextGara(date));
+    renderAll();
+  } catch(err){
+    msg.className = 'msg err';
+    msg.textContent = writeErrorText(err);
+    btn.disabled = false;
+  }
+});
+
+document.addEventListener('click', async e => {
+  const b = e.target.closest('button[data-del]'); if (!b) return;
+  if (b.dataset.armed !== '1'){ b.dataset.armed = '1'; b.textContent = 'Conferma'; setTimeout(() => { if (b.isConnected){ b.dataset.armed=''; b.textContent='Elimina'; } }, 4000); return; }
+  b.disabled = true;
+  try { await store.deleteGame(b.dataset.del); } catch(err){ setStatus(writeErrorText(err), true); b.disabled = false; }
+});
+
+$('#addForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const msg = $('#addMsg');
+  const name = $('#newName').value.trim().replace(/\s+/g,' ');
+  if (!name){ msg.className='msg err'; msg.textContent='Scrivi un nome.'; return; }
+  if (S.players.some(p => norm(p.name) === norm(name))){ msg.className='msg err'; msg.textContent=`${name} c'è già.`; return; }
+  try { await store.addPlayer(name); msg.className='msg ok'; msg.textContent=`${name} aggiunto.`; $('#newName').value=''; }
+  catch(err){ msg.className='msg err'; msg.textContent=writeErrorText(err); }
+});
+
+$('#presentChips').addEventListener('click', e => {
+  const b = e.target.closest('[data-present]'); if (!b) return;
+  const n = b.dataset.present;
+  UI.removed.has(n) ? UI.removed.delete(n) : UI.removed.add(n);
+  renderTavolo();
+});
+$('#selAll').addEventListener('click', () => { UI.removed = new Set(); renderTavolo(); });
+$('#newSeasonName').addEventListener('input', e => { e.target.dataset.touched = '1'; });
+let closeArmed = false;
+$('#closeForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const msg = $('#closeMsg'), btn = $('#closeBtn');
+  const name = $('#newSeasonName').value.trim();
+  if (!name){ msg.className='msg err'; msg.textContent='Scrivi il nome della nuova season.'; return; }
+  if (!closeArmed){
+    closeArmed = true; btn.textContent = 'Conferma: chiudi ' + (S.config?.name || 'season');
+    msg.className='msg err'; msg.textContent='Premi di nuovo per confermare. Punti e SEG ripartiranno da zero.';
+    setTimeout(() => { closeArmed = false; btn.textContent = 'Chiudi season e riparti da zero'; }, 6000);
+    return;
+  }
+  closeArmed = false; btn.disabled = true;
+  const c = UI.cache, cfg = S.config || {};
+  const st = seasonStandings(c);
+  const oldId = cfg.id || ('s' + Date.now());
+  const record = { id: oldId, name: cfg.name || 'Season', end: cfg.end || '', closedAt: new Date().toISOString(),
+    winner: st[0]?.name || '', winnerTotal: st[0]?.total || 0, standings: st, games: seasonGames().length };
+  const num = (name.match(/(\d+)\s*$/)||[])[1];
+  let newId = num ? 's' + num : 's' + Date.now();
+  if (newId === oldId || (S.seasons||[]).some(x => x.id === newId)) newId = 's' + Date.now();
+  const next = { id: newId, name, end: $('#newSeasonEnd').value || '', baseline: {}, segBaseline: {}, startedAt: today() };
+  try {
+    await store.closeSeason(record, next);
+    msg.className='msg ok'; msg.textContent = `${record.name} chiusa: vince ${record.winner}. Benvenuti nella ${name}!`;
+    $('#newSeasonName').dataset.touched = ''; $('#newSeasonEnd').value = '';
+  } catch(err){
+    msg.className='msg err'; msg.textContent = writeErrorText(err);
+  }
+  btn.disabled = false; btn.textContent = 'Chiudi season e riparti da zero';
+});
+document.querySelectorAll('input[name=metric]').forEach(r => r.addEventListener('change', renderAndamento));
+$('#hlChips').addEventListener('click', e => {
+  const b = e.target.closest('[data-hl]'); if (!b) return;
+  const n = b.dataset.hl; UI.hlTouched = true;
+  if (UI.hl.includes(n)) UI.hl = UI.hl.filter(x => x !== n);
+  else if (UI.hl.length < 4) UI.hl = [...UI.hl, n];
+  else { $('#hlHint').textContent = 'Massimo 4: togline uno prima.'; return; }
+  renderAndamento();
+});
+$('#lineChart').addEventListener('pointermove', lineHover);
+$('#lineChart').addEventListener('pointerdown', lineHover);
+$('#lineChart').addEventListener('pointerleave', () => { $('#lineTip').hidden = true; const xh = $('#xhair'); if (xh) xh.setAttribute('visibility','hidden'); });
+$('#wPrev').addEventListener('click', () => { UI.weekOffset--; renderAll(); });
+$('#wNext').addEventListener('click', () => { UI.weekOffset++; renderAll(); });
+
+/* ---------- accesso ---------- */
+function renderAccess(){
+  const on = store?.kind === 'github';
+  const tok = ghToken();
+  $('#accRepo').innerHTML = on
+    ? `Repository: <strong>${esc(GH.owner)}/${esc(GH.repo)}</strong> · file <code>${esc(GH.path)}</code> · ramo <code>${esc(GH.branch)}</code>`
+    : 'La pagina non è pubblicata su GitHub Pages: sei in modalità prova.';
+  $('#accState').innerHTML = !on ? '<span class="pill">Prova locale</span>'
+    : tok ? '<span class="pill ok">Puoi inserire e modificare</span>' : '<span class="pill">Solo consultazione</span>';
+  $('#accForget').hidden = !tok;
+  $('#accHist').innerHTML = on ? `<a href="https://github.com/${encodeURIComponent(GH.owner)}/${encodeURIComponent(GH.repo)}/commits/${encodeURIComponent(GH.branch)}/${encodeURIComponent(GH.path)}" target="_blank" rel="noopener">Vedi tutte le modifiche su GitHub</a>` : '';
+}
+function takeTokenFromHash(){
+  const m = location.hash.match(/^#token=([A-Za-z0-9_]+)$/);
+  if (!m) return;
+  lsSet(TOKEN_KEY, m[1]);
+  history.replaceState(null, '', location.pathname + location.search + '#gara');
+}
+$('#accForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const msg = $('#accMsg'); const v = $('#accToken').value.trim();
+  if (!v){ msg.className='msg err'; msg.textContent='Incolla il codice.'; return; }
+  msg.className='msg'; msg.textContent='Verifico…';
+  try {
+    await ghRead(v);
+    lsSet(TOKEN_KEY, v); $('#accToken').value='';
+    msg.className='msg ok'; msg.textContent='Codice valido: da questo dispositivo ora puoi inserire le gare.';
+    renderAll(); store.refresh(true);
+  } catch(err){
+    msg.className='msg err'; msg.textContent = err.code === 'missing' ? 'Codice valido, ma nel repository manca data.json.' : readErrorText(err);
+  }
+});
+$('#accForget').addEventListener('click', () => { try { localStorage.removeItem(TOKEN_KEY); } catch(e){} $('#accMsg').className='msg'; $('#accMsg').textContent='Codice rimosso da questo dispositivo.'; renderAll(); });
+
+/* ---------- boot ---------- */
+takeTokenFromHash();
+showTab();
+const onGitHub = !!(GH.owner && GH.repo) && location.protocol.startsWith('http');
+store = onGitHub ? makeGitHubStore() : makeLocalStore();
+UI.cache = compute(); renderAll();
+setStatus('Caricamento dei dati…');
+store.start();
+})();
+</script>
+</body>
+</html>

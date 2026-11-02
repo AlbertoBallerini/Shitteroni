@@ -1,0 +1,152 @@
+{
+ "version": 1,
+ "config": {
+  "id": "s20",
+  "name": "Season 20",
+  "end": "2026-11-13",
+  "baselineNote": "Classifica generale e SEG counter dalla settimana precedente (Excel, Season 20)",
+  "baseline": {
+   "Ale": 185,
+   "Fede": 451,
+   "Tia": 352,
+   "Marco": 134,
+   "Dechi": 456,
+   "Nicola": 456,
+   "Davide": 179,
+   "Marghe": 375,
+   "Balle": 456,
+   "Louis": 51,
+   "Carlos": 0,
+   "Francesco": 0,
+   "Jack": 423,
+   "Charles": 0,
+   "Lucio": 177
+  },
+  "segBaseline": {
+   "Ale": 1,
+   "Fede": 9,
+   "Tia": 0,
+   "Marco": 0,
+   "Dechi": 11,
+   "Nicola": 3,
+   "Davide": 0,
+   "Marghe": 0,
+   "Balle": 7,
+   "Louis": 0,
+   "Carlos": 0,
+   "Francesco": 0,
+   "Jack": 0,
+   "Charles": 0,
+   "Lucio": 0
+  }
+ },
+ "players": [
+  {
+   "id": "ale",
+   "name": "Ale",
+   "order": 1,
+   "active": true,
+   "aliases": []
+  },
+  {
+   "id": "fede",
+   "name": "Fede",
+   "order": 2,
+   "active": true,
+   "aliases": []
+  },
+  {
+   "id": "tia",
+   "name": "Tia",
+   "order": 3,
+   "active": true,
+   "aliases": []
+  },
+  {
+   "id": "marco",
+   "name": "Marco",
+   "order": 4,
+   "active": true,
+   "aliases": []
+  },
+  {
+   "id": "dechi",
+   "name": "Dechi",
+   "order": 5,
+   "active": true,
+   "aliases": []
+  },
+  {
+   "id": "nicola",
+   "name": "Nicola",
+   "order": 6,
+   "active": true,
+   "aliases": []
+  },
+  {
+   "id": "davide",
+   "name": "Davide",
+   "order": 7,
+   "active": true,
+   "aliases": []
+  },
+  {
+   "id": "marghe",
+   "name": "Marghe",
+   "order": 8,
+   "active": true,
+   "aliases": []
+  },
+  {
+   "id": "balle",
+   "name": "Balle",
+   "order": 9,
+   "active": true,
+   "aliases": []
+  },
+  {
+   "id": "louis",
+   "name": "Louis",
+   "order": 10,
+   "active": true,
+   "aliases": []
+  },
+  {
+   "id": "carlos",
+   "name": "Carlos",
+   "order": 11,
+   "active": true,
+   "aliases": []
+  },
+  {
+   "id": "francesco",
+   "name": "Francesco",
+   "order": 12,
+   "active": true,
+   "aliases": []
+  },
+  {
+   "id": "jack",
+   "name": "Jack",
+   "order": 13,
+   "active": true,
+   "aliases": []
+  },
+  {
+   "id": "charles",
+   "name": "Charles",
+   "order": 14,
+   "active": true,
+   "aliases": []
+  },
+  {
+   "id": "lucio",
+   "name": "Lucio",
+   "order": 15,
+   "active": true,
+   "aliases": []
+  }
+ ],
+ "games": [],
+ "seasons": []
+}
