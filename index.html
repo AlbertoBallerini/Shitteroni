@@ -58,7 +58,8 @@ main{max-width:980px;margin:0 auto;padding:20px 16px 60px;display:grid;gap:18px}
 .notice{border:1px solid var(--line);background:var(--surface);border-left:4px solid var(--ball);padding:10px 14px;border-radius:8px;font-size:14px}
 .notice.err{border-left-color:var(--bad)}
 section.panel{display:none;gap:18px}
-section.panel.on{display:grid}
+section.panel.on{display:grid;grid-template-columns:minmax(0,1fr)}
+.card{min-width:0}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px}
 .card h2{font-family:var(--font-display);font-weight:800;font-size:24px;text-transform:uppercase;letter-spacing:.4px;margin:0 0 4px;line-height:1.05}
 .card h3{font-size:14px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);margin:16px 0 8px}
@@ -160,6 +161,31 @@ table.heat td.v.mrseg{outline:1px solid var(--ball);outline-offset:-3px}
 .game-head{display:flex;justify-content:space-between;align-items:center;gap:6px;font-weight:700}
 .empty{color:var(--muted);font-style:italic}
 .weeknav{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+/* telefono */
+.btn.small{min-height:36px}
+.fix select{min-height:36px}
+.scroll table td:first-child,.scroll table th:first-child{position:sticky;left:0;background:#000;z-index:1}
+table.heat td.nm{position:sticky;left:0;background:#000;z-index:1}
+@media (max-width:700px){
+  header.band::before{display:none}
+  .band h1{font-size:30px}
+  .season{font-size:12px;gap:6px}
+  .season span{padding:3px 8px}
+  #dailyTable td{white-space:nowrap}
+  .band-inner{padding:22px 22px 16px}
+  nav.tabs{position:static}
+  nav.tabs .wrap{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0;padding:0 6px;overflow:visible}
+  nav.tabs a{padding:11px 4px;text-align:center;font-size:13.5px;border-bottom-width:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  main{padding:14px 12px 48px;gap:14px}
+  .card{padding:14px}
+  .card h2{font-size:22px}
+  .seg{display:flex;width:100%}
+  .seg label{flex:1;text-align:center;padding:10px 8px}
+  .preview li{grid-template-columns:30px minmax(0,1fr) auto}
+  .tiers{grid-template-columns:minmax(0,1fr)}
+  th,td{padding:7px 6px}
+  .game-head{flex-wrap:wrap}
+}
 @media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
 </style>
 </head>
@@ -172,11 +198,11 @@ table.heat td.v.mrseg{outline:1px solid var(--ball);outline-offset:-3px}
 </header>
 <nav class="tabs" aria-label="Sezioni">
   <div class="wrap">
-    <a href="#gara" data-tab="gara">Inserisci gara</a>
+    <a href="#gara" data-tab="gara">Nuova gara</a>
     <a href="#classifica" data-tab="classifica">Classifiche</a>
     <a href="#tavolo" data-tab="tavolo">Ordine</a>
     <a href="#giocatori" data-tab="giocatori">Giocatori</a>
-    <a href="#storico" data-tab="storico">Storico gare</a>
+    <a href="#storico" data-tab="storico">Storico</a>
     <a href="#andamento" data-tab="andamento">Andamento</a>
     <a href="#season" data-tab="season">Season</a>
     <a href="#accesso" data-tab="accesso">Accesso</a>
@@ -554,7 +580,7 @@ function renderPreview(){
       status = '<span class="pill bad">Doppio</span>';
     }
     const name = x.player ? `<strong>${esc(x.player.name)}</strong>` : `<strong>${esc(x.clean)}</strong>`;
-    const raw = x.player && norm(x.raw) !== norm(x.player.name) ? `<div class="raw">da «${esc(x.raw)}»</div>` : '';
+    const raw = x.player && norm(x.clean) !== norm(x.player.name) ? `<div class="raw">da «${esc(x.raw)}»</div>` : '';
     return `<li><span class="pos">${pos}°</span><div>${name} ${status}${raw}${fix}</div><span class="pts">${pts} pt</span></li>`;
   }).join('');
   box.innerHTML = `<ol>${lis}</ol>`;
@@ -650,20 +676,22 @@ function drawSchema(seats){
   if (n < 2){ svg.innerHTML = ''; svg.removeAttribute('viewBox'); $('#schemaNote').textContent = ''; return; }
   const { L, R } = schemaSides(n);
   const rows = Math.max(L.length, R.length, 3);
-  const W = 520, bw = 120, bh = 34, gap = 10, top = 8;
+  const W = Math.max(300, Math.min(760, Math.round(svg.parentElement.clientWidth || 520)));
+  const narrow = W < 480;
+  const bw = narrow ? Math.floor((W - 84) / 2) : 130, bh = 36, gap = 8, top = 8;
   const y = i => top + i*(bh+gap);
   const H = y(rows-1) + bh + top;
-  const colX = { L: 8, R: W - 8 - bw };
+  const colX = { L: 2, R: W - 2 - bw };
   const ys = (list) => list.map((_,i) => list.length === rows ? y(i) : (i === list.length-1 ? y(rows-1) : y(i)));
   const box = (x, yy, seat) => { const name = seats[seat-1];
     return `<rect x="${x}" y="${yy}" width="${bw}" height="${bh}" rx="5" fill="#000" stroke="var(--line)"/>
       <text class="seatno" x="${x+10}" y="${yy+22}">${seat}</text>
-      <text class="nm" x="${x+(seat>9?36:28)}" y="${yy+22}">${esc(name.length>11?name.slice(0,10)+'…':name)}</text>`; };
+      <text class="nm" x="${x+(seat>9?36:28)}" y="${yy+22}">${esc(name.length>(narrow?9:12)?name.slice(0,narrow?8:11)+'…':name)}</text>`; };
   const ly = ys(L), ry = ys(R);
   let out = `<defs><marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/></marker></defs>`;
-  const ax1 = colX.L + bw + 18, ax2 = colX.R - 18;
+  const ax1 = colX.L + bw + (narrow ? 10 : 18), ax2 = colX.R - (narrow ? 10 : 18);
   const tTop = y(1) - 2, tBot = y(rows-1) - gap/2 - 14;
-  const tx1 = ax1 + 18, tx2 = ax2 - 18;
+  const tx1 = ax1 + (narrow ? 10 : 18), tx2 = ax2 - (narrow ? 10 : 18);
   const tableH = Math.max(40, tBot - tTop);
   out += `<rect x="${tx1}" y="${tTop}" width="${tx2-tx1}" height="${tableH}" rx="3" fill="#0b2347" stroke="var(--table)" stroke-width="2"/>
     <line x1="${(tx1+tx2)/2}" y1="${tTop}" x2="${(tx1+tx2)/2}" y2="${tTop+tableH}" stroke="var(--ink)" stroke-width="1.5"/>
@@ -783,7 +811,7 @@ function seriesData(c){
   }
   return out;
 }
-function niceMax(v){ if (v <= 10) return 10; const p = Math.pow(10, Math.floor(Math.log10(v))); const m = v/p; return (m <= 2 ? 2 : m <= 2.5 ? 2.5 : m <= 5 ? 5 : 10) * p; }
+function niceMax(v){ if (v <= 10) return 10; const p = Math.pow(10, Math.floor(Math.log10(v))); const m = v/p; const st = [1,1.2,1.5,2,2.5,3,4,5,6,8,10].find(x => m <= x); return st * p; }
 function renderAndamento(){
   const c = UI.cache;
   const metric = (document.querySelector('input[name=metric]:checked')||{}).value || 'pts';
@@ -803,7 +831,8 @@ function renderAndamento(){
     return `<button class="chip" aria-pressed="${on}" data-hl="${esc(n)}">${on ? `<span class="dot" style="background:${UI.colorOf[n]}"></span>` : ''}${esc(n)}</button>`; }).join('');
 
   const svg = $('#lineChart');
-  const W = 900, H = 380, m = { l: 46, r: 96, t: 14, b: 30 };
+  const W = Math.max(300, Math.round(svg.parentElement.clientWidth || 900));
+  const H = W < 560 ? 300 : 380, m = { l: 38, r: W < 560 ? 84 : 96, t: 14, b: 30 };
   const iw = W - m.l - m.r, ih = H - m.t - m.b;
   const ymax = niceMax(Math.max(1, ...data.flatMap(pt => c.names.map(n => val(pt,n)))));
   const nx = data.length;
@@ -811,7 +840,7 @@ function renderAndamento(){
   const y = v => m.t + ih - v/ymax*ih;
   let g = '';
   for (let k=0;k<=4;k++){ const v = ymax*k/4, yy = y(v); g += `<line class="grid" x1="${m.l}" x2="${m.l+iw}" y1="${yy}" y2="${yy}"/><text class="axis" x="${m.l-8}" y="${yy+4}" text-anchor="end">${Math.round(v)}</text>`; }
-  const step = Math.max(1, Math.ceil(nx / 8));
+  const step = Math.max(1, Math.ceil(nx / Math.max(3, Math.floor(W / 110))));
   data.forEach((pt,i) => { if (i % step === 0 || i === nx-1) g += `<text class="axis" x="${x(i)}" y="${H-8}" text-anchor="middle">${esc(pt.label)}</text>`; });
   const path = n => data.map((pt,i) => `${i?'L':'M'}${x(i).toFixed(1)},${y(val(pt,n)).toFixed(1)}`).join('');
   const others = c.names.filter(n => !UI.hl.includes(n));
@@ -887,7 +916,7 @@ function showTab(){
     if (t === UI.tab) document.querySelector(`nav a[data-tab="${t}"]`).setAttribute('aria-current','page');
   }
 }
-window.addEventListener('hashchange', showTab);
+window.addEventListener('hashchange', () => { showTab(); if (UI.cache){ renderTavolo(); renderAndamento(); } });
 
 /* ---------- status ---------- */
 function setStatus(text, err){
@@ -1186,7 +1215,10 @@ $('#hlChips').addEventListener('click', e => {
 });
 $('#lineChart').addEventListener('pointermove', lineHover);
 $('#lineChart').addEventListener('pointerdown', lineHover);
-$('#lineChart').addEventListener('pointerleave', () => { $('#lineTip').hidden = true; const xh = $('#xhair'); if (xh) xh.setAttribute('visibility','hidden'); });
+$('#lineChart').addEventListener('click', lineHover);
+$('#lineChart').addEventListener('pointerleave', e => { if (e.pointerType !== 'mouse') return; $('#lineTip').hidden = true; const xh = $('#xhair'); if (xh) xh.setAttribute('visibility','hidden'); });
+let rzT; window.addEventListener('resize', () => { clearTimeout(rzT); rzT = setTimeout(() => { renderTavolo(); renderAndamento(); }, 150); });
+document.addEventListener('pointerdown', e => { if (!e.target.closest('#lineChart')){ $('#lineTip').hidden = true; const xh = $('#xhair'); if (xh) xh.setAttribute('visibility','hidden'); } });
 $('#wPrev').addEventListener('click', () => { UI.weekOffset--; renderAll(); });
 $('#wNext').addEventListener('click', () => { UI.weekOffset++; renderAll(); });
 
